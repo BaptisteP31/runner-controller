@@ -1,4 +1,5 @@
 import json
+import ipaddress
 import ssl
 import time
 from urllib.error import HTTPError, URLError
@@ -66,14 +67,18 @@ class ProxmoxClient:
         return self._request("GET", f"/nodes/{quote(self.config.pve_node)}/qemu/{vmid}/status/current")
 
     def guest_ipv4(self, vmid):
-        data = self._request("POST", f"/nodes/{quote(self.config.pve_node)}/qemu/{vmid}/agent/network-get-interfaces", {}) or {}
+        data = self._request("GET", f"/nodes/{quote(self.config.pve_node)}/qemu/{vmid}/agent/network-get-interfaces") or {}
+        runner_network = ipaddress.ip_network("10.20.40.0/24")
         for interface in data.get("result", []):
-            if interface.get("name") == "lo":
-                continue
             for addr in interface.get("ip-addresses", []):
-                ip = addr.get("ip-address", "")
-                if addr.get("ip-address-type") == "ipv4" and not ip.startswith("169.254.") and ip != "127.0.0.1":
-                    return ip
+                if addr.get("ip-address-type") != "ipv4":
+                    continue
+                try:
+                    ip = ipaddress.ip_address(addr.get("ip-address", ""))
+                except ValueError:
+                    continue
+                if ip in runner_network:
+                    return str(ip)
         return None
 
     def wait_task(self, upid):
