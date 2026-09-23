@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenClaw Proxmox runner controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=runnerctl
+Group=runnerctl
+WorkingDirectory=/opt/runner-controller
+EnvironmentFile=/etc/runner-controller/pve.env
+ExecStart=/usr/bin/python3 -m app.main
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/runner-controller
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
